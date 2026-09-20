@@ -26,6 +26,7 @@
   --legend:#ffc94d;
   --good:#4ef0a0;
   --bad:#ff5c8a;
+  --orange:#ff8a4c;
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px);
   padding-bottom:env(safe-area-inset-bottom,0px);
@@ -235,6 +236,40 @@ h1{font-family:"Unbounded","Arial Black",sans-serif;font-weight:900;font-size:cl
 .tile.common{--c:var(--common)} .tile.rare{--c:var(--rare)} .tile.epic{--c:var(--epic)} .tile.legend{--c:var(--legend)}
 .robux{color:#7ff0b6;font-weight:700}
 
+/* ================== СРАВНЕНИЕ С КОНКУРЕНТОМ ================== */
+.vs-head{display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:center;margin-bottom:14px}
+.vs-game{display:flex;align-items:center;gap:12px;min-width:0;text-decoration:none}
+.vs-game.rv{flex-direction:row-reverse;text-align:right}
+.vs-game img{flex:0 0 64px;width:64px;height:64px;border-radius:16px;object-fit:cover;background:var(--bg-2);
+  border:2px solid var(--c);box-shadow:0 0 22px -4px var(--c);transition:transform .3s}
+.vs-game:hover img{transform:scale(1.06) rotate(-3deg)}
+.vs-game .nm{font-weight:700;line-height:1.2;overflow-wrap:anywhere}
+.vs-game .sub{color:var(--muted);font-size:.82rem}
+.vs-game.me{--c:var(--pink)} .vs-game.rv{--c:var(--orange)}
+.vs{font-family:"Unbounded",sans-serif;font-weight:900;font-size:1.7rem;
+  background:linear-gradient(135deg,var(--pink),var(--orange));-webkit-background-clip:text;background-clip:text;color:transparent;
+  animation:vsPulse 2.2s ease-in-out infinite;filter:drop-shadow(0 0 14px rgba(255,138,76,.45))}
+@keyframes vsPulse{50%{transform:scale(1.15) rotate(-5deg)}}
+.cmp-score{text-align:center;color:var(--muted);margin-bottom:10px;line-height:1.6}
+.cmp-score b{font-family:"Unbounded",sans-serif;color:var(--text);font-size:1.2rem}
+.cmp-row{display:grid;grid-template-columns:minmax(80px,1fr) minmax(140px,2fr) minmax(80px,1fr);gap:14px;align-items:center;
+  padding:11px 6px;border-top:1px solid rgba(255,255,255,.06);border-radius:10px;transition:background .2s}
+.cmp-row:hover{background:rgba(255,255,255,.04)}
+.cv{font-family:"Unbounded",sans-serif;font-weight:700;font-size:1.05rem;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.cv.me{color:#f5c8ff}
+.cv.rv{color:#ffd0b5;text-align:right}
+.cv.me.win::after{content:" 👑";font-size:.85rem}
+.cv.rv.win::before{content:"👑 ";font-size:.85rem}
+.ck{text-align:center;color:var(--muted);font-size:.85rem;margin-bottom:6px}
+.cbar{display:flex;gap:3px;height:8px}
+.cbar i{display:block;height:100%;border-radius:4px;transition:width 1s cubic-bezier(.2,.8,.2,1)}
+.cbar .a{background:linear-gradient(90deg,var(--violet),var(--pink));box-shadow:0 0 10px rgba(228,92,255,.5)}
+.cbar .b{background:linear-gradient(90deg,#ffb36b,var(--orange));box-shadow:0 0 10px rgba(255,138,76,.5)}
+.legend{display:inline-flex;align-items:center;gap:8px}
+.lg{display:inline-block;width:14px;height:4px;border-radius:2px}
+.lg.me{background:var(--pink)} .lg.rv{background:var(--orange)}
+#cmpChart{width:100%;height:170px;display:block;overflow:visible}
+
 /* ---------- скелетон ---------- */
 .skel{color:transparent!important;-webkit-text-fill-color:transparent;border-radius:8px;
   background:linear-gradient(90deg,rgba(255,255,255,.05) 0%,rgba(255,255,255,.14) 50%,rgba(255,255,255,.05) 100%)!important;
@@ -260,6 +295,10 @@ h1{font-family:"Unbounded","Arial Black",sans-serif;font-weight:900;font-size:cl
   .two{grid-template-columns:1fr}
   .tiles{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}
   .minis{grid-template-columns:repeat(2,1fr)}
+  .vs-head{grid-template-columns:1fr;justify-items:center;text-align:center}
+  .vs-game,.vs-game.rv{flex-direction:column;text-align:center}
+  .cmp-row{grid-template-columns:1fr 1.4fr 1fr;gap:8px}
+  .cv{font-size:.9rem}
 }
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
@@ -334,6 +373,23 @@ h1{font-family:"Unbounded","Arial Black",sans-serif;font-weight:900;font-size:cl
     <div class="stat glass cyan reveal"><div class="v skel" id="servers">00</div><div class="k" id="serversK"><span class="loading-text">Загружаю сервера</span></div><div class="extra" id="serversExtra"></div></div>
   </section>
 
+  <!-- СРАВНЕНИЕ -->
+  <section class="card glass section reveal">
+    <h2>⚔️ Сравнение с петухом <span class="count" id="cmpStatus"><span class="loading-text">Загружаю</span></span></h2>
+    <div class="vs-head">
+      <div class="vs-game me"><img id="cmpMeIcon" alt=""><div><div class="nm" id="cmpMeName">Твоя игра</div><div class="sub">Твоя игра</div></div></div>
+      <div class="vs">VS</div>
+      <a class="vs-game rv" id="cmpRvLink" target="_blank" rel="noopener"><img id="cmpRvIcon" alt=""><div><div class="nm" id="cmpRvName">Петух</div><div class="sub" id="cmpRvSub">Петух</div></div></a>
+    </div>
+    <div class="cmp-score" id="cmpScore"></div>
+    <div id="cmpRows"></div>
+    <div class="spark-head" style="margin-top:20px">
+      <span>Онлайн по времени</span>
+      <span class="legend"><i class="lg me"></i>Ты <i class="lg rv"></i>Петух</span>
+    </div>
+    <svg id="cmpChart" viewBox="0 0 600 170" preserveAspectRatio="none" aria-label="График онлайна: ты и Петух"></svg>
+  </section>
+
   <!-- АНАЛИТИКА -->
   <section class="card glass section reveal">
     <h2>📊 Аналитика</h2>
@@ -394,6 +450,7 @@ h1{font-family:"Unbounded","Arial Black",sans-serif;font-weight:900;font-size:cl
 /* ================== НАСТРОЙКИ ================== */
 const CONFIG = {
   placeId: 126697347409345,   // ID места из ссылки на игру
+  rivalPlaceId: 138975986361445, // Петух (MUSOR DROP). 0 = выключить сравнение
   universeId: null,           // если знаешь Universe ID — впиши сюда, будет на 1 запрос меньше
   refreshSeconds: 30,         // как часто обновлять основное
   retrySeconds: 4,            // через сколько повторять то, что не загрузилось (лайки, сервера)
@@ -673,6 +730,7 @@ async function updateVotes() {
     if (!v || typeof v.upVotes !== "number") throw new Error("пустой ответ");
     S.votes = v; votesTries = 0;
     renderVotes();
+    renderCompare();
   } catch (e) {
     console.warn("Лайки:", e.message);
     votesTries++;
@@ -930,7 +988,7 @@ async function loadStatic(g) {
   $("chips").innerHTML = chips.map(t => `<span class="chip">${esc(t)}</span>`).join("");
 
   getJSON(`https://thumbnails.roblox.com/v1/games/icons?universeIds=${S.universeId}&size=512x512&format=Png&isCircular=false`)
-    .then(d => { const u = d?.data?.[0]?.imageUrl; if (u) { $("icon").src = u; setFavicon(u); } }).catch(() => {});
+    .then(d => { const u = d?.data?.[0]?.imageUrl; if (u) { $("icon").src = u; $("cmpMeIcon").src = u; setFavicon(u); } }).catch(() => {});
   getJSON(`https://thumbnails.roblox.com/v1/games/multiget/thumbnails?universeIds=${S.universeId}&countPerUniverse=10&size=768x432&format=Png`)
     .then(d => setupGallery((d?.data?.[0]?.thumbnails || []).map(t => t.imageUrl).filter(Boolean))).catch(() => setupGallery([]));
   const cUrl = c.type === "Group"
@@ -962,6 +1020,7 @@ async function refresh() {
     // лайки и сервера запускаем сразу, параллельно с основными данными
     updateVotes();
     updateServers();
+    updateRival();
 
     const [info, favs] = await Promise.all([
       getJSON(`https://games.roblox.com/v1/games?universeIds=${S.universeId}`, 3),
@@ -1013,6 +1072,7 @@ async function refresh() {
     updateAnalytics();
 
     if (!S.staticLoaded) loadStatic(g);
+    renderCompare();
 
     showError("");
     $("lastUpd").textContent = "Обновлено в " + new Date().toLocaleTimeString("ru-RU");
@@ -1025,6 +1085,156 @@ async function refresh() {
   } finally {
     btn.disabled = false; btn.classList.remove("loading");
   }
+}
+
+/* ================== Петух ================== */
+const R = { placeId: CONFIG.rivalPlaceId, universeId: null, game: null, votes: null, favs: null, staticLoaded: false };
+const RHKEY = "musordrop_rival_hist_" + R.placeId;
+let rivalHistory = store.get(RHKEY, []);
+let rivalBusy = false, rivalTries = 0;
+
+async function updateRival() {
+  if (!R.placeId || rivalBusy) return;
+  rivalBusy = true;
+  try {
+    if (!R.universeId) {
+      const u = await getJSON(`https://apis.roblox.com/universes/v1/places/${R.placeId}/universe`, 3);
+      R.universeId = u.universeId;
+      if (!R.universeId) throw new Error("нет Universe ID");
+    }
+    const [info, favs, votes] = await Promise.all([
+      getJSON(`https://games.roblox.com/v1/games?universeIds=${R.universeId}`, 3),
+      getJSON(`https://games.roblox.com/v1/games/${R.universeId}/favorites/count`).catch(() => null),
+      getJSON(`https://games.roblox.com/v1/games/votes?universeIds=${R.universeId}`, 3).then(d => d?.data?.[0] || null).catch(() => null),
+    ]);
+    const g = info.data?.[0];
+    if (!g) throw new Error("игра не найдена");
+    R.game = g;
+    R.favs = favs?.favoritesCount ?? g.favoritedCount ?? 0;
+    if (votes && typeof votes.upVotes === "number") R.votes = votes;
+    rivalHistory.push({ t: Date.now(), n: g.playing || 0 });
+    if (rivalHistory.length > CONFIG.historyPoints) rivalHistory = rivalHistory.slice(-CONFIG.historyPoints);
+    store.set(RHKEY, rivalHistory);
+    if (!R.staticLoaded) loadRivalStatic(g);
+    rivalTries = 0;
+    renderCompare();
+  } catch (e) {
+    console.warn("Петух:", e.message);
+    rivalTries++;
+    if (!R.game) $("cmpStatus").innerHTML = `<span class="loading-text">Загружаю Петуха, попытка ${rivalTries + 1}</span>`;
+    setTimeout(() => { rivalBusy = false; updateRival(); }, CONFIG.retrySeconds * 1000 * Math.min(rivalTries, 4));
+    return;
+  }
+  rivalBusy = false;
+}
+
+function loadRivalStatic(g) {
+  R.staticLoaded = true;
+  $("cmpRvName").textContent = g.name;
+  $("cmpRvSub").textContent = "от " + (g.creator?.name || "—");
+  $("cmpRvLink").href = `https://www.roblox.com/games/${R.placeId}`;
+  getJSON(`https://thumbnails.roblox.com/v1/games/icons?universeIds=${R.universeId}&size=150x150&format=Png&isCircular=false`)
+    .then(d => { const u = d?.data?.[0]?.imageUrl; if (u) $("cmpRvIcon").src = u; }).catch(() => {});
+}
+
+const avgOf = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+const likeOf = v => v && (v.upVotes + v.downVotes) ? Math.round(v.upVotes / (v.upVotes + v.downVotes) * 100) : null;
+const perDay = g => g ? (g.visits || 0) / daysSince(g.created) : null;
+
+function compareRowsData() {
+  const me = S.game, rv = R.game;
+  return [
+    { k: "Онлайн сейчас", a: me.playing || 0, b: rv.playing || 0, f: n => nf.format(n) },
+    { k: "Средний онлайн за период", a: avgOf(history.filter(h => typeof h.n === "number").map(h => h.n)), b: avgOf(rivalHistory.map(h => h.n)), f: n => nf1.format(n) },
+    { k: "Посещения", a: me.visits || 0, b: rv.visits || 0, f: n => nfShort.format(n) },
+    { k: "Заходов в день", a: perDay(me), b: perDay(rv), f: n => nf.format(Math.round(n)) },
+    { k: "В избранном", a: S.favs ?? 0, b: R.favs ?? 0, f: n => nfShort.format(n) },
+    { k: "Лайки", a: likeOf(S.votes), b: likeOf(R.votes), f: n => n + "%" },
+    { k: "Оценок всего", a: S.votes ? S.votes.upVotes + S.votes.downVotes : null, b: R.votes ? R.votes.upVotes + R.votes.downVotes : null, f: n => nf.format(n) },
+    { k: "Игре дней", a: daysSince(me.created), b: daysSince(rv.created), f: n => nf.format(n), neutral: true },
+  ];
+}
+
+let cmpBuilt = false;
+function renderCompare() {
+  if (!R.placeId || !S.game || !R.game) return;
+  const rows = compareRowsData();
+  const box = $("cmpRows");
+  if (!cmpBuilt) {
+    box.innerHTML = rows.map((r, i) => `
+      <div class="cmp-row">
+        <div class="cv me" id="cA${i}">—</div>
+        <div><div class="ck">${esc(r.k)}</div><div class="cbar"><i class="a" id="cBa${i}" style="width:50%"></i><i class="b" id="cBb${i}" style="width:50%"></i></div></div>
+        <div class="cv rv" id="cB${i}">—</div>
+      </div>`).join("");
+    cmpBuilt = true;
+  }
+  let win = 0, lose = 0;
+  rows.forEach((r, i) => {
+    const A = $("cA" + i), B = $("cB" + i);
+    A.textContent = r.a == null ? "—" : r.f(r.a);
+    B.textContent = r.b == null ? "—" : r.f(r.b);
+    const known = r.a != null && r.b != null;
+    const aw = known && !r.neutral && r.a > r.b, bw = known && !r.neutral && r.b > r.a;
+    A.classList.toggle("win", aw); B.classList.toggle("win", bw);
+    if (aw) win++; if (bw) lose++;
+    const sum = known ? r.a + r.b : 0;
+    const pa = sum ? Math.max(4, Math.min(96, r.a / sum * 100)) : 50;
+    $("cBa" + i).style.width = `calc(${pa}% - 1.5px)`;
+    $("cBb" + i).style.width = `calc(${100 - pa}% - 1.5px)`;
+  });
+
+  // итог
+  const a = S.game.playing || 0, b = R.game.playing || 0;
+  let onlineLine;
+  if (a === b) onlineLine = "По онлайну сейчас ровно";
+  else if (a > b) onlineLine = b ? `По онлайну ты впереди в ${nf1.format(a / b)} раза (+${nf.format(a - b)})` : `По онлайну ты впереди на ${nf.format(a)}`;
+  else onlineLine = a ? `Петух впереди по онлайну в ${nf1.format(b / a)} раза (+${nf.format(b - a)})` : `Петух впереди по онлайну на ${nf.format(b)}`;
+  const verdict = win > lose ? "в твою пользу 🔥" : win < lose ? "в пользу Петуха" : "ничья";
+  $("cmpScore").innerHTML = `Счёт <b>${win}:${lose}</b> ${verdict}<br>${esc(onlineLine)}`;
+  $("cmpStatus").textContent = `онлайн ${nf.format(a)} vs ${nf.format(b)}`;
+
+  $("cmpMeName").textContent = S.game.name;
+  if ($("icon").src && !$("cmpMeIcon").src) $("cmpMeIcon").src = $("icon").src;
+  drawCompareChart();
+}
+
+function drawCompareChart() {
+  const svg = $("cmpChart"), W = 600, H = 170, pad = 12;
+  const mine = history.filter(h => typeof h.n === "number");
+  const rv = rivalHistory;
+  if (mine.length < 2 && rv.length < 2) {
+    svg.innerHTML = `<text x="300" y="90" text-anchor="middle" fill="#a998cf" font-size="14" font-family="Rubik,sans-serif">График появится после пары обновлений</text>`;
+    return;
+  }
+  const all = mine.concat(rv);
+  const tMax = Math.max(...all.map(h => h.t));
+  const tMin = Math.max(Math.min(...all.map(h => h.t)), tMax - CONFIG.historyPoints * CONFIG.refreshSeconds * 1000);
+  const tSpan = Math.max(tMax - tMin, 1);
+  const max = Math.max(1, ...all.map(h => h.n));
+  const path = rows => {
+    const pts = rows.filter(h => h.t >= tMin).map(h => [((h.t - tMin) / tSpan) * W, H - pad - (h.n / max) * (H - pad * 2)]);
+    if (pts.length < 2) return { d: "", last: pts[0] };
+    let d = `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
+    for (let i = 1; i < pts.length; i++) {
+      const [x0, y0] = pts[i - 1], [x1, y1] = pts[i], mx = (x0 + x1) / 2;
+      d += ` C${mx.toFixed(1)},${y0.toFixed(1)} ${mx.toFixed(1)},${y1.toFixed(1)} ${x1.toFixed(1)},${y1.toFixed(1)}`;
+    }
+    return { d, last: pts.at(-1) };
+  };
+  const pm = path(mine), pr = path(rv);
+  const grid = [0.25, 0.5, 0.75].map(f => {
+    const y = H - pad - f * (H - pad * 2);
+    return `<line x1="0" x2="${W}" y1="${y}" y2="${y}" stroke="rgba(255,255,255,.06)" stroke-dasharray="4 6"/>
+      <text x="4" y="${y - 4}" fill="#a998cf" font-size="11" font-family="Rubik,sans-serif">${nf.format(Math.round(max * f))}</text>`;
+  }).join("");
+  const dot = (p, c) => p ? `<circle class="last-dot" cx="${p[0]}" cy="${p[1]}" r="4" fill="${c}"/><circle cx="${p[0]}" cy="${p[1]}" r="4.5" fill="#fff" stroke="${c}" stroke-width="2"/>` : "";
+  svg.innerHTML = `
+    <defs><filter id="glow2"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+    ${grid}
+    ${pr.d ? `<path d="${pr.d}" fill="none" stroke="#ff8a4c" stroke-width="3" stroke-linecap="round" filter="url(#glow2)"/>` : ""}
+    ${pm.d ? `<path d="${pm.d}" fill="none" stroke="#e45cff" stroke-width="3" stroke-linecap="round" filter="url(#glow2)"/>` : ""}
+    ${dot(pr.last, "#ff8a4c")}${dot(pm.last, "#e45cff")}`;
 }
 
 /* ================== ЗАПУСК ================== */
@@ -1044,6 +1254,7 @@ setInterval(() => {
   $("prog").style.transform = `scaleX(${countdown / CONFIG.refreshSeconds})`;
 }, 1000);
 
+if (!R.placeId) $("cmpRows").closest("section").remove();
 drawSpark();
 refresh();
 </script>
