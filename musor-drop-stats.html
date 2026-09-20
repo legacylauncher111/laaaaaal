@@ -142,6 +142,21 @@ h1{font-family:"Unbounded","Arial Black",sans-serif;font-weight:900;font-size:cl
 .tab:hover{color:var(--text)}
 .tab.on{background:linear-gradient(135deg,var(--violet),var(--pink));color:#fff}
 #spark{width:100%;height:150px;display:block;overflow:visible}
+.chart-wrap{position:relative;touch-action:pan-y;cursor:crosshair}
+.hover-line{position:absolute;top:0;bottom:0;width:1px;margin-left:-.5px;pointer-events:none;opacity:0;transition:opacity .15s;
+  background:linear-gradient(180deg,transparent,rgba(255,255,255,.6) 30%,rgba(255,255,255,.6) 70%,transparent)}
+.hover-dot{position:absolute;width:13px;height:13px;border-radius:50%;background:#fff;border:3px solid var(--dc);transform:translate(-50%,-50%);
+  box-shadow:0 0 16px var(--dc);pointer-events:none;opacity:0;transition:opacity .15s}
+.tip{position:absolute;top:0;left:0;z-index:3;pointer-events:none;opacity:0;transition:opacity .15s;white-space:nowrap;
+  background:rgba(20,10,44,.94);border:1px solid var(--stroke);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  border-radius:12px;padding:8px 12px;font-size:.85rem;box-shadow:0 14px 30px -10px rgba(0,0,0,.8)}
+.chart-wrap.hovering .hover-line,.chart-wrap.hovering .hover-dot,.chart-wrap.hovering .tip{opacity:1}
+.tip .tt{color:var(--muted);font-size:.78rem;margin-bottom:4px}
+.tip .tr{display:flex;align-items:center;gap:8px;line-height:1.5}
+.tip .tr i{width:8px;height:8px;border-radius:50%;background:var(--dc);box-shadow:0 0 8px var(--dc)}
+.tip b{font-family:"Unbounded",sans-serif;font-weight:700;font-size:.95rem}
+.tip .dd{font-size:.78rem;font-weight:700}
+.tip .dd.up{color:var(--good)} .tip .dd.down{color:var(--bad)}
 .draw{stroke-dasharray:2000;stroke-dashoffset:2000;animation:draw 1.4s ease forwards}
 @keyframes draw{to{stroke-dashoffset:0}}
 .last-dot{animation:ping-svg 1.8s ease-out infinite;transform-box:fill-box;transform-origin:center}
@@ -338,7 +353,7 @@ h1{font-family:"Unbounded","Arial Black",sans-serif;font-weight:900;font-size:cl
         </div>
         <span id="sparkRange"></span>
       </div>
-      <svg id="spark" viewBox="0 0 600 150" preserveAspectRatio="none" aria-label="График"></svg>
+      <div class="chart-wrap" id="sparkWrap"><svg id="spark" viewBox="0 0 600 150" preserveAspectRatio="none" aria-label="График"></svg></div>
     </div>
   </section>
 
@@ -365,7 +380,7 @@ h1{font-family:"Unbounded","Arial Black",sans-serif;font-weight:900;font-size:cl
       <span>Онлайн по времени</span>
       <span class="legend"><i class="lg me"></i>Ты <i class="lg rv"></i><span id="cmpLegendRv">Петух</span></span>
     </div>
-    <svg id="cmpChart" viewBox="0 0 600 170" preserveAspectRatio="none" aria-label="График онлайна: ты и конкурент"></svg>
+    <div class="chart-wrap" id="cmpWrap"><svg id="cmpChart" viewBox="0 0 600 170" preserveAspectRatio="none" aria-label="График онлайна: ты и конкурент"></svg></div>
   </section>
 
   <section class="card glass section reveal">
@@ -687,6 +702,72 @@ let history = store.get(HKEY, []);
 let rivalHistory = store.get(RHKEY, []);
 let record = store.get(RKEY, null);
 let metric = "n", drawAnim = true;
+const METRIC_LABEL = { n: "Онлайн", v: "Посещения", f: "Избранное" };
+const charts = {};
+
+function fmtTime(t) {
+  const d = new Date(t), today = new Date().toDateString() === d.toDateString();
+  const time = d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+  return today ? "сегодня в " + time : d.toLocaleDateString("ru-RU", { day: "numeric", month: "short" }) + " в " + time;
+}
+
+function nearestBy(arr, key, target) {
+  let best = null, bd = Infinity;
+  for (const p of arr) { const d = Math.abs(p[key] - target); if (d < bd) { bd = d; best = p; } }
+  return best;
+}
+
+function attachHover(wrapId, chartKey) {
+  const wrap = $(wrapId);
+  const line = document.createElement("div"); line.className = "hover-line";
+  const tip = document.createElement("div"); tip.className = "tip";
+  wrap.append(line, tip);
+  const dots = [];
+
+  function hide() { wrap.classList.remove("hovering"); }
+  function move(e) {
+    const c = charts[chartKey];
+    const main = c && c.series.find(s => s.pts.length);
+    if (!main) return hide();
+    const r = wrap.getBoundingClientRect();
+    const x = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * c.W;
+    const ref = nearestBy(main.pts, "x", x);
+    const maxGap = CONFIG.refreshSeconds * 1000 * 3;
+
+    let rowsHtml = "";
+    c.series.forEach((s, i) => {
+      const p = s === main ? ref : nearestBy(s.pts, "t", ref.t);
+      if (!dots[i]) { dots[i] = document.createElement("div"); dots[i].className = "hover-dot"; wrap.append(dots[i]); }
+      const dot = dots[i];
+      if (!p || Math.abs(p.t - ref.t) > maxGap) { dot.style.display = "none"; return; }
+      dot.style.display = "";
+      dot.style.setProperty("--dc", s.color);
+      dot.style.left = (p.x / c.W * 100) + "%";
+      dot.style.top = (p.y / c.H * 100) + "%";
+      let dd = "";
+      if (s.delta) {
+        const prev = s.pts[s.pts.indexOf(p) - 1];
+        if (prev && prev.v !== p.v) {
+          const d = p.v - prev.v;
+          dd = ` <span class="dd ${d > 0 ? "up" : "down"}">${d > 0 ? "▲ +" : "▼ "}${nf.format(d)}</span>`;
+        }
+      }
+      rowsHtml += `<div class="tr" style="--dc:${s.color}"><i></i>${esc(s.label)}: <b>${nf.format(p.v)}</b>${dd}</div>`;
+    });
+    dots.slice(c.series.length).forEach(d => d.style.display = "none");
+
+    tip.innerHTML = `<div class="tt">${fmtTime(ref.t)}</div>${rowsHtml}`;
+    const xp = ref.x / c.W * 100;
+    line.style.left = xp + "%";
+    const right = xp > 55;
+    tip.style.left = xp + "%";
+    tip.style.transform = right ? "translateX(calc(-100% - 14px))" : "translateX(14px)";
+    wrap.classList.add("hovering");
+  }
+  wrap.addEventListener("pointermove", move);
+  wrap.addEventListener("pointerdown", move);
+  wrap.addEventListener("pointerleave", hide);
+}
 
 function pushHistory(point) {
   history.push({ t: Date.now(), ...point });
@@ -714,6 +795,7 @@ function drawSpark() {
   if (rows.length < 2) {
     svg.innerHTML = `<text x="300" y="80" text-anchor="middle" fill="#a998cf" font-size="14" font-family="Rubik,sans-serif">График появится после пары обновлений</text>`;
     $("sparkRange").textContent = "";
+    charts.spark = null;
     return;
   }
   const vals = rows.map(h => h[metric]);
@@ -722,6 +804,8 @@ function drawSpark() {
   const pts = rows.map(h => [((h.t - t0) / tSpan) * W, H - pad - ((h[metric] - min) / span) * (H - pad * 2)]);
   const line = smoothPath(pts);
   const [lx, ly] = pts.at(-1);
+  charts.spark = { W, H, series: [{ label: METRIC_LABEL[metric], color: "#e45cff", delta: true,
+    pts: rows.map((h, i) => ({ x: pts[i][0], y: pts[i][1], t: h.t, v: h[metric] })) }] };
   const cls = drawAnim ? "draw" : "";
   drawAnim = false;
   svg.innerHTML = `
@@ -953,6 +1037,7 @@ function drawCompareChart() {
   const rv = rivalHistory;
   if (mine.length < 2 && rv.length < 2) {
     svg.innerHTML = `<text x="300" y="90" text-anchor="middle" fill="#a998cf" font-size="14" font-family="Rubik,sans-serif">График появится после пары обновлений</text>`;
+    charts.cmp = null;
     return;
   }
   const all = mine.concat(rv);
@@ -961,10 +1046,16 @@ function drawCompareChart() {
   const tSpan = Math.max(tMax - tMin, 1);
   const max = Math.max(1, ...all.map(h => h.n));
   const build = rows => {
-    const pts = rows.filter(h => h.t >= tMin).map(h => [((h.t - tMin) / tSpan) * W, H - pad - (h.n / max) * (H - pad * 2)]);
-    return pts.length < 2 ? { d: "", last: pts[0] } : { d: smoothPath(pts), last: pts.at(-1) };
+    const src = rows.filter(h => h.t >= tMin);
+    const pts = src.map(h => [((h.t - tMin) / tSpan) * W, H - pad - (h.n / max) * (H - pad * 2)]);
+    const data = src.map((h, i) => ({ x: pts[i][0], y: pts[i][1], t: h.t, v: h.n }));
+    return pts.length < 2 ? { d: "", last: pts[0], data } : { d: smoothPath(pts), last: pts.at(-1), data };
   };
   const pm = build(mine), pr = build(rv);
+  charts.cmp = { W, H, series: [
+    { label: "Ты", color: "#e45cff", pts: pm.data },
+    { label: CONFIG.rivalLabel, color: "#ff8a4c", pts: pr.data },
+  ] };
   const grid = [0.25, 0.5, 0.75].map(f => {
     const y = H - pad - f * (H - pad * 2);
     return `<line x1="0" x2="${W}" y1="${y}" y2="${y}" stroke="rgba(255,255,255,.06)" stroke-dasharray="4 6"/>
@@ -1262,6 +1353,8 @@ function renderDiag() {
     <p>В очереди запросов: ${queue.length}, выполняется: ${active}.</p>`;
 }
 setInterval(renderDiag, 2000);
+attachHover("sparkWrap", "spark");
+attachHover("cmpWrap", "cmp");
 $("diagBtn").addEventListener("click", () => { $("diag").classList.toggle("open"); renderDiag(); });
 
 const gameUrl = `https://www.roblox.com/games/${CONFIG.placeId}`;
